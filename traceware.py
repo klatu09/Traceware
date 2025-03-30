@@ -11,7 +11,7 @@ import atexit
 from datetime import datetime
 
 # Discord Webhook URL
-WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLamSNlG9dywD-F5hiytst3Cy2tL76Nf6gVtv9GtdU6BKf1XXluZ5UW6ZimOg-B"
+WEBHOOK_URL = ""
 
 # Get PC name
 PC_NAME = socket.gethostname()
