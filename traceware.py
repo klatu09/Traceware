@@ -125,8 +125,7 @@ def monitor():
                 if (new_app_name, new_window_title) != (current_app_name, current_window_title):
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     if current_app_name and current_window_title:
-                        log_message = (f"[{timestamp}] {PC_NAME} - Switched from {current_app_name} ({current_window_title}) "
-                                       f"to {new_app_name} ({new_window_title}) [Active Window]")
+                        log_message = (f"[{timestamp}] {PC_NAME} - Active Window: {new_app_name} ({new_window_title})")
                     else:
                         log_message = f"[{timestamp}] {PC_NAME} - Active Window: {new_app_name} ({new_window_title})"
                     
