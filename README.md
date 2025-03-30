@@ -13,9 +13,7 @@ This project is a Python-based monitoring tool that logs user activity, includin
 ✦ Author: K1atu
 ✦ Motto: "you get some, you hack some"
 
-# Traceware
-
-#Features
+# Features
 1. System Event Logging: Detects system startup and shutdown, logging the timestamp.
 2. Active Window Tracking: Logs changes in active applications.
 3. Keystroke Logging: Captures user keystrokes and sends logs when the "Enter" key is pressed.
