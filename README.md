@@ -23,8 +23,8 @@ This project is a Python-based monitoring tool that logs user activity, includin
 5. IP Address Detection: Retrieves and logs both IPv4 and IPv6 addresses.
 6. Color-Coded Logs: Uses distinct colors for different log types.
 
-## Installation
-# Prerequisites
+# Installation
+## Prerequisites
 Required Libraries
 1. psutil
 2. requests
@@ -32,7 +32,7 @@ Required Libraries
 4. pywin32
 5. Usage
 
-# Configuration
+## Configuration
 
 1. Edit the WEBHOOK_URL variable in the script to point to your Discord webhook:
 
