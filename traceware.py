@@ -85,7 +85,8 @@ def log_system_start():
 # Function to log system shutdown
 def log_system_shutdown():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    message = f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - Connection Lost"
+    message = (f"[{timestamp}] {PC_NAME} (IPv4: {IPV4_ADDRESS}, IPv6: {IPV6_ADDRESS}) - "
+               f"Location: {CITY}, {REGION}, {COUNTRY}, {POSTAL}, Timezone: {TIMEZONE} - Connection Lost")
     send_to_discord("SYSTEM SHUTDOWN", message, 16711680)  # Red
 
 # Register shutdown hook
